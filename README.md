@@ -3,13 +3,12 @@
 <br />
 <div align="center">
   <a href="https://github.com/emmahodgson77/comp3100">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/logo.png" alt="Logo" width="100" height="100">
   </a>
 
 <h3 align="center">COMP3100</h3>
 
   <p align="center">
-    project_description
     <br />
     <a href="https://github.com/emmahodgson77/comp3100"><strong>Explore the docs »</strong></a>
     <br />
