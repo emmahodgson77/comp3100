@@ -14,19 +14,15 @@ public class Server {
         String str="",str2="";
         while(!str.equals("BYE")){
             str=din.readUTF();
-            System.out.println("client says: "+str);
+            System.out.println("Client says: "+str);
             if(str.equalsIgnoreCase("HELO")){
-                System.out.println("writing gday back...");
-                str2 = "G'DAY";
+                dout.writeUTF("G'DAY");
+                dout.flush();
             }
-            //str2=br.readLine();
-
-            dout.writeUTF(str2);
-            dout.flush();
+            str= din.readUTF();
         }
-
-        str2 = "BYE";
-        dout.writeUTF(str2);
+        System.out.println("Client says:"+str);
+        dout.writeUTF("BYE");
         dout.flush();
         din.close();
         s.close();
