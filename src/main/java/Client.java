@@ -15,17 +15,14 @@ public class Client {
             dout.flush();
             int count =0;
             while (!str.equals("BYE")) {
-
-                count++;
-                System.out.println("Server "+ (count) + " says: " + str);
-                if (str.equalsIgnoreCase("G'DAY")) {
-                    System.out.println("server. "+ (count) + ".. says ... "+str);
+                if (!str.isEmpty() && str.equalsIgnoreCase("G'DAY")) {
+                    System.out.println("Server says: " + str);
                     dout.writeUTF("BYE");
                     dout.flush();
                 }
                 str = din.readUTF();
             }
-
+            System.out.println("Server says: " + str);
             dout.close();
             s.close();
         } catch (IOException e) {

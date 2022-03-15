@@ -64,14 +64,7 @@ Here's a blank template to get started: To avoid retyping too much info. Do a se
 
 ### Built With
 
-* [Next.js](https://nextjs.org/)
-* [React.js](https://reactjs.org/)
-* [Vue.js](https://vuejs.org/)
-* [Angular](https://angular.io/)
-* [Svelte](https://svelte.dev/)
-* [Laravel](https://laravel.com)
-* [Bootstrap](https://getbootstrap.com)
-* [JQuery](https://jquery.com)
+*
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -80,8 +73,6 @@ Here's a blank template to get started: To avoid retyping too much info. Do a se
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 
@@ -93,18 +84,13 @@ This is an example of how to list things you need to use the software and how to
 
 ### Installation
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
+1. Clone the repo
    ```sh
    git clone https://github.com/emmahodgson77/comp3100.git
    ```
 3. Install NPM packages
    ```sh
    npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
    ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -166,7 +152,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Emma Hodgson
 
 Project Link: [https://github.com/emmahodgson77/comp3100](https://github.com/emmahodgson77/comp3100)
 
@@ -187,16 +173,3 @@ Project Link: [https://github.com/emmahodgson77/comp3100](https://github.com/emm
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/emmahodgson77/comp3100.svg?style=for-the-badge
-[contributors-url]: https://github.com/emmahodgson77/comp3100/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/emmahodgson77/comp3100.svg?style=for-the-badge
-[forks-url]: https://github.com/emmahodgson77/comp3100/network/members
-[stars-shield]: https://img.shields.io/github/stars/emmahodgson77/comp3100.svg?style=for-the-badge
-[stars-url]: https://github.com/emmahodgson77/comp3100/stargazers
-[issues-shield]: https://img.shields.io/github/issues/emmahodgson77/comp3100.svg?style=for-the-badge
-[issues-url]: https://github.com/emmahodgson77/comp3100/issues
-[license-shield]: https://img.shields.io/github/license/emmahodgson77/comp3100.svg?style=for-the-badge
-[license-url]: https://github.com/emmahodgson77/COMP3100/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/
-[product-screenshot]: images/screenshot.png
