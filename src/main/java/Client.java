@@ -5,7 +5,8 @@ import java.net.*;
 public class Client {
     public static void main(String[] args) throws Exception {
         try {
-            Socket s = new Socket("127.0.0.1", 30305);
+            int PORT = 50305;
+            Socket s = new Socket("127.0.0.1", PORT);
 
             DataInputStream din = new DataInputStream(s.getInputStream());
             DataOutputStream dout = new DataOutputStream(s.getOutputStream());
