@@ -2,7 +2,7 @@ package src.main.java;
 
 import java.io.*;
 import java.net.*;
-public class Client {
+public class MyDSClient {
     public static void main(String[] args) throws Exception {
         try {
             int PORT = 50305;
