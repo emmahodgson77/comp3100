@@ -33,24 +33,29 @@
 
 ### How to run the demo
 <div id="installation"></div>
-
 1. Create a test directory on a linux machine
-   ```sh
+    ```sh
    mkdir test
    ```
 2. Change to that directory
-   ```sh
+    ```sh
    cd test
    ```
+
 3. Clone the repo
    ```sh
    git clone https://github.com/emmahodgson77/comp3100.git
    ```
-4. Compile DSClient class
+4. Change to the comp3100 directory
+    ```sh
+   cd comp3100
+   ```
+
+5. Compile DSClient class
    ```sh
    javac DSClientjava
    ```
-5. Run the simulation tests
+6. Run the simulation tests
    ```sh
    ./S1Tests-wk6.sh DSClient.class -n
    ```
