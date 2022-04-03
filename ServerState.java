@@ -1,5 +1,3 @@
-package src.main.java;
-
 public class ServerState implements Comparable{
 
         String type;
