@@ -6,10 +6,9 @@
     <img src="images/logo.png" alt="Logo" width="100" height="100">
   </a>
 
-<h3 align="center">COMP3100</h3>
-
+<h3 align="center">COMP3100 Stage 1 Project</h3>
+<h4>Simulated Distributed Systems</h4>
   <p align="center">
-    <br />
     <a href="https://github.com/emmahodgson77/comp3100"><strong>Explore the docs »</strong></a>
     <br />
     <br />
