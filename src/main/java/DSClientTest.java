@@ -8,7 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DSClientTest {
-    @org.junit.jupiter.api.Test
+    /*@org.junit.jupiter.api.Test
     void parsedDSSystemXMLgeneratesServerObjects() throws Exception{
         List<Server> actual = DSClient.parseDSSystemXML();
         List<Server> expected = new ArrayList<Server>();
@@ -23,5 +23,5 @@ class DSClientTest {
         assertEquals(actual.get(1).type, expected.get(1).type);
         assertEquals(actual.get(0).availableCores, expected.get(0).availableCores);
         assertEquals(actual.get(1).availableMemory, expected.get(1).availableMemory);
-    }
+    }*/
 }
