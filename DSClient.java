@@ -1,6 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -118,7 +119,7 @@ public class DSClient {
 
 
             //send QUIT
-            dout.write("QUIT\n".getBytes());
+            dout.write("QUIT\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
             dsMsg = din.readLine();
             while (!dsMsg.equalsIgnoreCase("QUIT")) {
