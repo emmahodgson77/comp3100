@@ -119,12 +119,9 @@ public class DSClient {
 
 
             //send QUIT
-            dout.write("QUIT\n".getBytes(StandardCharsets.UTF_8));
+            dout.write("QUIT\n".getBytes(StandardCharsets.ISO_8859_1));
             dout.flush();
             dsMsg = din.readLine();
-            while (!dsMsg.equalsIgnoreCase("QUIT")) {
-                dsMsg = din.readLine();
-            }
             dout.write("OK\n".getBytes());
             dout.flush();
 
