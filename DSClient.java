@@ -10,7 +10,6 @@ public class DSClient {
     public static final String NEWLINE_CHAR = "\n";
     public static final String AUTH_EMMA = "AUTH emma" + NEWLINE_CHAR;
     public static final String SCHD = "SCHD";
-    public static String DS_SERVER_FILEPATH = "/home/emma/ds-sim/src/pre-compiled/ds-system.xml";
     private static int serverid = 0;
     private static int maxCores = 0;
     private static String maxCoreServerType = null;
@@ -128,7 +127,7 @@ public class DSClient {
             String newline = "QUIT\n";
             dout.write(newline.getBytes(StandardCharsets.UTF_8));
             dout.flush();
-            dsMsg = din.readLine();
+
             dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
 
