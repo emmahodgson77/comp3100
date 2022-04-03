@@ -71,7 +71,7 @@
    ```
 6. Run the simulation tests
    ```sh
-   /S1Tests-wk6.sh DSClient.class -n
+   ./S1Tests-wk6.sh DSClient.class -n
    ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
