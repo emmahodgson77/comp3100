@@ -25,28 +25,14 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
+    <li><a href="#installation">How To Run the Demo</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
 
-<!-- GETTING STARTED -->
-## Getting Started
-
-
 ### How to run the demo
-
+<div id="installation"></div>
 1. Create a test directory on a linux machine
     ```sh
    mkdir test
@@ -83,23 +69,14 @@
 <!-- CONTACT -->
 ## Contact
 
+<div id="contact"></div>
 Emma Hodgson
-Studnet # 30305500
+Student # 30305500
 
 Project Link: [https://github.com/emmahodgson77/comp3100](https://github.com/emmahodgson77/comp3100)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* []()
-* []()
-* []()
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 
 

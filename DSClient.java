@@ -30,12 +30,12 @@ public class DSClient {
             //initiate and authenticate
 
             //say hello (initiate comms)
-            dout.write("HELO\n".getBytes());
+            dout.write("HELO\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
             System.out.println(din.readLine());
 
             //send auth
-            dout.write(AUTH_EMMA.getBytes());
+            dout.write(AUTH_EMMA.getBytes(StandardCharsets.UTF_8));
             dout.flush();
 
             //determine the largest available servers and schedule all jobs in ds-server simulated system
@@ -45,7 +45,7 @@ public class DSClient {
             while (!dsMsg.equals("NONE")) {
 
                 //send REDY
-                dout.write("REDY\n".getBytes());
+                dout.write("REDY\n".getBytes(StandardCharsets.UTF_8));
                 dout.flush();
 
                 //if Job sent by ds-server, capture details
@@ -59,7 +59,7 @@ public class DSClient {
                     //check if server list previously retrieved - only need to do this once
                     if (!serverStatesFound) {
                         String getsCall = "GETS All\n";
-                        dout.write(getsCall.getBytes());
+                        dout.write(getsCall.getBytes(StandardCharsets.UTF_8));
                         dout.flush();
                         //find how many servers there are in the list
                         dsMsg = din.readLine(); //DATA 5 124
@@ -67,7 +67,7 @@ public class DSClient {
                         Integer numberOfRecords = Integer.valueOf(dsServerInfo[1]);
 
                         //send ok to get server list
-                        dout.write("OK\n".getBytes());
+                        dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
                         dout.flush();
 
                         List<ServerState> dsServerList = new ArrayList<>();
@@ -97,7 +97,7 @@ public class DSClient {
                                 biggestServers.add(serverState);
                         }
                         //send ok
-                        dout.write("OK\n".getBytes());
+                        dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
                         dout.flush();
                         dsMsg = din.readLine();
                         serverStatesFound = true;
@@ -113,14 +113,14 @@ public class DSClient {
                         jobIdsScheduled.add(jobID);
                         String schCommand = SCHD + " " + jobID + " " + maxCoreServerType + " " + serverid + NEWLINE_CHAR;
                         serverid++;
-                        dout.write(schCommand.getBytes());
+                        dout.write(schCommand.getBytes(StandardCharsets.UTF_8));
                         dout.flush();
                         dsMsg = din.readLine();
                     }
                 }
             }
 
-            dout.write("OK\n".getBytes());
+            dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
 
 
@@ -129,7 +129,7 @@ public class DSClient {
             dout.write(newline.getBytes(StandardCharsets.UTF_8));
             dout.flush();
             dsMsg = din.readLine();
-            dout.write("OK\n".getBytes());
+            dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
 
             dout.close();
