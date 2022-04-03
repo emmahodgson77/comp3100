@@ -116,18 +116,23 @@ public class DSClient {
             dout.write("OK\n".getBytes());
             dout.flush();
 
+
             //send QUIT
             dout.write("QUIT\n".getBytes());
             dout.flush();
-
+            dsMsg = din.readLine();
+            while (!dsMsg.equalsIgnoreCase("QUIT")) {
+                dsMsg = din.readLine();
+            }
             dout.write("OK\n".getBytes());
             dout.flush();
 
             dout.close();
             s.close();
 
-        } catch (
-                Exception e) {
+
+        } catch (Exception e) {
+            System.out.println("something wend wrong: " + e.getMessage());
         }
     }
 
