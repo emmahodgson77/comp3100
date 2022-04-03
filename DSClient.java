@@ -19,12 +19,15 @@ public class DSClient {
         int PORT = 50000;
         boolean serverStatesFound = false;
         try {
+            //make a socket connection with ds-server
             Socket s = new Socket("127.0.0.1", PORT);
 
             DataInputStream din = new DataInputStream(s.getInputStream());
             DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 
             String dsMsg = "";
+
+            //initiate and authenticate
 
             //say hello (initiate comms)
             dout.write("HELO\n".getBytes());
@@ -34,16 +37,18 @@ public class DSClient {
             //send auth
             dout.write(AUTH_EMMA.getBytes());
             dout.flush();
-            List<ServerState> biggestServers = new ArrayList<>();
 
+            //determine the largest available servers and schedule all jobs in ds-server simulated system
+            List<ServerState> biggestServers = new ArrayList<>();
             dsMsg = din.readLine();
             List<Integer> jobIdsScheduled = new ArrayList<>();
             while (!dsMsg.equals("NONE")) {
 
-                //send REDY - find JBN and parse to determine DATA
+                //send REDY
                 dout.write("REDY\n".getBytes());
                 dout.flush();
 
+                //if Job sent by ds-server, capture details
                 String jobMessage = din.readLine();
                 System.out.println(jobMessage);
                 if (jobMessage.equalsIgnoreCase("NONE")) {
@@ -51,16 +56,17 @@ public class DSClient {
                 } else {
                     String[] jobDetails = jobMessage.split("\\s");
 
-                    //if we haven't already retrieved available servers, do so now
+                    //check if server list previously retrieved - only need to do this once
                     if (!serverStatesFound) {
                         String getsCall = "GETS All\n";
                         dout.write(getsCall.getBytes());
                         dout.flush();
+                        //find how many servers there are in the list
                         dsMsg = din.readLine(); //DATA 5 124
                         String[] dsServerInfo = dsMsg.split("\\s");
                         Integer numberOfRecords = Integer.valueOf(dsServerInfo[1]);
 
-                        //send ok to get server state list
+                        //send ok to get server list
                         dout.write("OK\n".getBytes());
                         dout.flush();
 
