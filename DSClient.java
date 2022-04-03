@@ -127,7 +127,7 @@ public class DSClient {
             String newline = "QUIT\n";
             dout.write(newline.getBytes(StandardCharsets.UTF_8));
             dout.flush();
-
+            dsMsg = din.readLine();
             dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
 
