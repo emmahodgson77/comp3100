@@ -1,5 +1,3 @@
-package src.main.java;
-
 public class Server implements Comparable<Server>{
     String type;
     int limit; //number of servers at the site
