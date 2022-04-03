@@ -33,8 +33,9 @@
 
 ### How to run the demo
 <div id="installation"></div>
+
 1. Create a test directory on a linux machine
-    ```sh
+   ```sh
    mkdir test
    ```
 2. Change to that directory
@@ -82,3 +83,4 @@ Project Link: [https://github.com/emmahodgson77/comp3100](https://github.com/emm
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
