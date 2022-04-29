@@ -5,8 +5,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DSClientTest {
-    /*@org.junit.jupiter.api.Test
-    void parsedDSSystemXMLgeneratesServerObjects() throws Exception{
+//    @org.junit.jupiter.api.Test
+    /*void parsedDSSystemXMLgeneratesServerObjects() throws Exception{
         List<Server> actual = DSClient.parseDSSystemXML();
         List<Server> expected = new ArrayList<Server>();
         expected.add(new Server("tiny",10, 60,0.10,1,2000,16000));
