@@ -1,24 +1,22 @@
-import java.util.ArrayList;
-import java.util.List;
+import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DSClientTest {
-//    @org.junit.jupiter.api.Test
-    /*void parsedDSSystemXMLgeneratesServerObjects() throws Exception{
-        List<Server> actual = DSClient.parseDSSystemXML();
-        List<Server> expected = new ArrayList<Server>();
-        expected.add(new Server("tiny",10, 60,0.10,1,2000,16000));
-        expected.add(new Server("small",10,60,0.20,2,4000,32000));
-        expected.add(new Server("medium",10,60,0.40,4,8000,64000));
-        expected.add(new Server("large",10,60,0.80,8,16000,128000));
-        expected.add(new Server("xlarge",10,60,1.60,16,32000,256000));
-
-        assertTrue(actual.size()>0);
-        assertEquals(actual.get(0).type, expected.get(0).type);
-        assertEquals(actual.get(1).type, expected.get(1).type);
-        assertEquals(actual.get(0).availableCores, expected.get(0).availableCores);
-        assertEquals(actual.get(1).availableMemory, expected.get(1).availableMemory);
-    }*/
+public class DSClientTest {
+    @Test
+    public void parseServerStateInfo() throws Exception{
+        String[] serverInfo = new String[]{"small", "0", "inactive", "-1", "2", "8000", "64000", "0", "0"};
+        ServerState actual = DSClient.getServerState(serverInfo);
+        ServerState expected = new ServerState("small",0,"inactive","-1",2,8000,64000);
+        
+        assertTrue(actual!=null);
+        assertEquals(actual.type, expected.type);
+        assertEquals(actual.state, expected.state);
+        assertEquals(actual.core, expected.core);
+        assertEquals(actual.serverID, expected.serverID);
+        assertEquals(actual.memory, expected.memory);
+        assertEquals(actual.disk, expected.disk);
+        assertEquals(actual.startTime, expected.startTime);
+    }
 }

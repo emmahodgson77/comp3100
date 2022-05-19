@@ -9,13 +9,9 @@ public class DSClient {
     public static final String NEWLINE_CHAR = "\n";
     public static final String AUTH_EMMA = "AUTH emma" + NEWLINE_CHAR;
     public static final String SCHD = "SCHD";
-    private static int serverid = 0;
-    private static int maxCores = 0;
-    private static String serverType = null;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         int PORT = 50000;
-        boolean serverStatesFound = false;
         try {
             //make a socket connection with ds-server
             Socket s = new Socket("127.0.0.1", PORT);
@@ -23,7 +19,7 @@ public class DSClient {
             DataInputStream din = new DataInputStream(s.getInputStream());
             DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 
-            String dsMsg = "";
+            String dsMsg;
 
             //initiate and authenticate
 
@@ -59,7 +55,7 @@ public class DSClient {
                     String[] dsServerInfo = dsMsg.split("\\s");
 
                     //parse the number of capable servers to add to our list
-                    Integer numberOfRecords = Integer.valueOf(dsServerInfo[1]);
+                    int numberOfRecords = Integer.parseInt(dsServerInfo[1]);
 
                     //send ok to get server details
                     dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
@@ -70,14 +66,7 @@ public class DSClient {
                     for (int i = 0; i < numberOfRecords; i++) {
                         //add each server to list
                         String[] serverInfo = din.readLine().split("\\s");
-                        ServerState server = new ServerState(
-                                serverInfo[0],
-                                Integer.parseInt(serverInfo[1]), //ID
-                                serverInfo[2], //state
-                                serverInfo[3], //starttime
-                                Integer.parseInt(serverInfo[4]), //core
-                                Integer.parseInt(serverInfo[5]), //memory
-                                Integer.parseInt(serverInfo[6])); //disk
+                        ServerState server = getServerState(serverInfo);
                         dsServerList.add(server);
                     }
 
@@ -87,8 +76,8 @@ public class DSClient {
                     din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
 
                     //use first capable server in list to schedule job
-                    serverType = dsServerList.get(0).type;
-                    serverid = dsServerList.get(0).serverID;
+                    String serverType = dsServerList.get(0).type;
+                    int serverid = dsServerList.get(0).serverID;
 
                     //schedule job
                     Integer jobID = Integer.parseInt(jobDetails[2]);
@@ -124,8 +113,16 @@ public class DSClient {
             System.out.println("something wend wrong: " + e.getMessage());
         }
     }
-
-
+    static ServerState getServerState(String[] serverInfo) {
+        return new ServerState(
+                serverInfo[0],
+                Integer.parseInt(serverInfo[1]), //ID
+                serverInfo[2], //state
+                serverInfo[3], //starttime
+                Integer.parseInt(serverInfo[4]), //core
+                Integer.parseInt(serverInfo[5]), //memory
+                Integer.parseInt(serverInfo[6]));
+    }
 }
 
 
