@@ -11,6 +11,7 @@ public class ServerState implements Comparable{
         int disk;
         int numberOfWaitingJobs;
         int numberOfRunningJobs;
+        int waitTime;
 
         public ServerState(String type, int serverID, String state, int startTime, int core, int memory, int disk, int numberOfWaitingJobs, int numberOfRunningJobs) {
             this.type = type;
@@ -37,6 +38,14 @@ public class ServerState implements Comparable{
     public int compareTo(Object o) {
             return Comparator.comparing(ServerState::getCore)
                     .compare(this, (ServerState) o);
+    }
+
+    public void setWaitTime(int waitTime) {
+        this.waitTime = waitTime;
+    }
+
+    public int getWaitTime(){
+            return this.waitTime;
     }
 
 }
