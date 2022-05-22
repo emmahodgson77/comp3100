@@ -1,14 +1,18 @@
+import java.util.Comparator;
+
 public class ServerState implements Comparable{
 
-        String type;
+        public String type;
         int serverID;
         String state;
-        String startTime;
+        int startTime;
         int core;
         int memory;
         int disk;
+        int numberOfWaitingJobs;
+        int numberOfRunningJobs;
 
-        public ServerState(String type, int serverID, String state, String startTime, int core, int memory, int disk) {
+        public ServerState(String type, int serverID, String state, int startTime, int core, int memory, int disk, int numberOfWaitingJobs, int numberOfRunningJobs) {
             this.type = type;
             this.serverID = serverID;
             this.state = state;
@@ -16,14 +20,23 @@ public class ServerState implements Comparable{
             this.core = core;
             this.memory = memory;
             this.disk = disk;
+            this.numberOfWaitingJobs = numberOfWaitingJobs;
+            this.numberOfRunningJobs = numberOfRunningJobs;
         }
 
 
-    @Override
-    public int compareTo(Object o) {
-            ServerState s =(ServerState)o;
-        return Integer.compare(s.core,this.core);
+    public int getCore() {
+        return core;
     }
 
+    public int getNumberOfWaitingJobs() {
+        return numberOfWaitingJobs;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+            return Comparator.comparing(ServerState::getCore)
+                    .compare(this, (ServerState) o);
+    }
 
 }

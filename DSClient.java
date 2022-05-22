@@ -3,6 +3,8 @@ import java.io.DataOutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class DSClient {
@@ -11,6 +13,9 @@ public class DSClient {
     public static final String SCHD = "SCHD";
 
     public static void main(String[] args) {
+        String arg = args[1];
+
+
         int PORT = 50000;
         try {
             //make a socket connection with ds-server
@@ -20,7 +25,6 @@ public class DSClient {
             DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 
             String dsMsg;
-
             //initiate and authenticate
 
             //say hello (initiate comms)
@@ -33,24 +37,36 @@ public class DSClient {
             dout.flush();
 
             dsMsg = din.readLine(); //initially we just want this server response to be not "NONE" in order to use the value to initiate our while condition
-            List<Integer> jobIdsScheduled = new ArrayList<>();
+//            List<Integer> jobIdsScheduled = new ArrayList<>();//todo remove
 
+            boolean first = true;
+            List<SchedulingTrackerItem> trackers = new ArrayList<>();
+
+            int scheduleCount = -1; //set the count to -1 so we can increment after scheduling a job, and reference this in an array
             while (!dsMsg.equals("NONE")) {
                 //send REDY
                 dout.write("REDY\n".getBytes(StandardCharsets.UTF_8));
                 dout.flush();
                 dsMsg = din.readLine();
 
+
                 //if Job sent by ds-server is a JOBN, capture details & schedule
                 if (dsMsg.contains("JOBN")) {
                     String[] jobDetails = dsMsg.split("\\s");
+                    int submitTime = Integer.parseInt(jobDetails[1]);
+                    String jobID = jobDetails[2];
+                    int estRuntime = Integer.parseInt(jobDetails[3]);
+                    int coreCountRequired = Integer.parseInt(jobDetails[4]);
+                    int memoryRequired = Integer.parseInt(jobDetails[5]);
+                    int diskRequired = Integer.parseInt(jobDetails[6]);
 
-                    String getsCapable = "GETS Capable " + jobDetails[4] + " " + jobDetails[5] + " " + jobDetails[6] + "\n";
 
-                    dout.write(getsCapable.getBytes(StandardCharsets.UTF_8));
+                    String query = "GETS Capable " + coreCountRequired + " " + memoryRequired + " " + diskRequired + "\n";
+
+                    dout.write(query.getBytes(StandardCharsets.UTF_8));
                     dout.flush();
 
-                    //capture the capable servers information response from ds server
+                    //capture the servers information response from ds server
                     dsMsg = din.readLine(); //eg. DATA 5 124
                     String[] dsServerInfo = dsMsg.split("\\s");
 
@@ -75,20 +91,63 @@ public class DSClient {
                     dout.flush();
                     din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
 
-                    //use first capable server in list to schedule job
-                    String serverType = dsServerList.get(0).type;
-                    int serverid = dsServerList.get(0).serverID;
+                    //todo determine which alg to apply: ff, bf, wf
 
-                    //schedule job
-                    Integer jobID = Integer.parseInt(jobDetails[2]);
-
-                    if (!jobIdsScheduled.contains(jobID)) {
-                        jobIdsScheduled.add(jobID);
-                        String schCommand = SCHD + " " + jobID + " " + serverType + " " + serverid + NEWLINE_CHAR;
-                        dout.write(schCommand.getBytes(StandardCharsets.UTF_8));
-                        dout.flush();
-                        din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
+                    if (first && arg != null && !arg.isEmpty()) {
+                        switch (arg) {
+                            case "bf":
+                                Collections.sort(dsServerList);
+                                break;
+                            case "wf":
+                                Collections.sort(dsServerList, Collections.reverseOrder());
+                                break;
+                            case "ff":
+                                break;
+                        }
                     }
+
+                    String serverType = null;
+                    int serverid = 0;
+
+                    //determine best availability
+
+
+                    SchedulingTrackerItem tracker = new SchedulingTrackerItem();
+                    for (ServerState server : dsServerList) {
+                        if (server.numberOfRunningJobs ==0) { //skip
+                            serverid = server.serverID;
+                            serverType = server.type;
+                            tracker.waitTime = server.state.equalsIgnoreCase("active") ? 0 : server.startTime;
+                        }
+                    }
+                    if(serverType == null){ // server wasn't selected because all servers have jobs running
+                        Collections.sort(dsServerList, Comparator.comparing(ServerState::getNumberOfWaitingJobs));
+                        serverid = dsServerList.get(0).serverID;
+                        serverType = dsServerList.get(0).type;
+                        tracker.waitTime = trackers.get(scheduleCount).startTime - submitTime;
+                    }
+
+                    //keep track of server/job allocation
+                    tracker.submissionTime = submitTime;
+                    tracker.serverID = serverid;
+                    tracker.serverType = serverType;
+                    tracker.jobID = jobID;
+                    tracker.setCalculatedTimes(estRuntime);
+                    trackers.add(tracker);
+
+                   /* if(serverType == null || serverType.isBlank()){
+
+                        //sort by least number of waiting jobs
+                        Collections.sort(dsServerList, Comparator.comparing(ServerState::getNumberOfWaitingJobs));
+                        serverType = dsServerList.get(0).type;
+                        serverid = dsServerList.get(0).serverID;
+                    }*/
+                    //schedule job
+                    String schCommand = SCHD + " " + jobID + " " + serverType + " " + serverid + NEWLINE_CHAR;
+                    dout.write(schCommand.getBytes(StandardCharsets.UTF_8));
+                    dout.flush();
+                    din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
+
                 }
 
             }
@@ -113,15 +172,36 @@ public class DSClient {
             System.out.println("something wend wrong: " + e.getMessage());
         }
     }
-    static ServerState getServerState(String[] serverInfo) {
+
+    /*static void getAlgType(){
+        if (arg != null && !arg.isEmpty()) {
+            switch (arg) {
+                case "fc":
+                    applyFirstFitSorting();
+                    break;
+                case "bf":
+                    applyBestFitSorting();
+                    break;
+                case "wf":
+                    applyWorstFitSorting();
+                    break;
+            }
+        } else{
+            applyFirstFitSorting();
+        }
+    }*/
+    public static ServerState getServerState(String[] serverInfo) {
         return new ServerState(
                 serverInfo[0],
                 Integer.parseInt(serverInfo[1]), //ID
                 serverInfo[2], //state
-                serverInfo[3], //starttime
+                Integer.parseInt(serverInfo[3]), //starttime
                 Integer.parseInt(serverInfo[4]), //core
                 Integer.parseInt(serverInfo[5]), //memory
-                Integer.parseInt(serverInfo[6]));
+                Integer.parseInt(serverInfo[6]),
+                Integer.parseInt(serverInfo[7]),
+                Integer.parseInt(serverInfo[8])
+        );
     }
 }
 
