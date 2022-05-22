@@ -94,10 +94,10 @@ public class DSClient {
                     //todo determine which alg to apply: ff, bf, wf
                     Comparator<ServerState> c = Comparator.comparing(ServerState::getCore);
                     if (arg != null && !arg.isEmpty()) {
-                        c = switch (arg) {
-                            case "wf" -> c.reversed();
-                            case "ff" -> null;
-                            default -> Comparator.comparing(ServerState::getCore);
+                        switch (arg) {
+                            case "wf": c.reversed();
+                            case "ff":c= null;
+                            default: c = Comparator.comparing(ServerState::getCore);
                         };
                     }
 
@@ -112,6 +112,7 @@ public class DSClient {
                     for (ServerState ss : dsServerList) {
                         if (ss.numberOfRunningJobs == 0) {
                             server = ss; //if no jobs running use this server
+                            ss.incrementNumberOfRunningJobs();
                             break;
                         }
                     }
@@ -125,17 +126,17 @@ public class DSClient {
                         }
 
                         //sort servers by how many jobs are queued
-                        c = switch (arg) {
-                            case "bf" -> Comparator.comparing(ServerState::getCore).thenComparing(ServerState::getWaitTime);
-                            case "wf" -> Comparator.comparing(ServerState::getCore).reversed().thenComparing(ServerState::getWaitTime);
-                            default -> Comparator.comparing(ServerState::getWaitTime);//ff will apply
+                        switch (arg) {
+                            case "bf":c=Comparator.comparing(ServerState::getCore).thenComparing(ServerState::getWaitTime);
+                            case "wf":c=Comparator.comparing(ServerState::getCore).reversed().thenComparing(ServerState::getWaitTime);
+                            default :c= Comparator.comparing(ServerState::getWaitTime);//ff will apply
                         };
                         Collections.sort(dsServerList, c);
                         server = dsServerList.get(0);
                     }
                     //set params for SCHD command
                     serverid = server.serverID;
-                    serverType = dsServerList.get(0).type;
+                    serverType = server.type;
 
                     //track server and job resources
                     tracker.waitTime = server.getWaitTime();

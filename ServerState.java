@@ -48,4 +48,7 @@ public class ServerState implements Comparable{
             return this.waitTime;
     }
 
+    public void incrementNumberOfRunningJobs() {
+            this.numberOfRunningJobs++;
+    }
 }
