@@ -1,6 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -76,7 +77,7 @@ public class DSClient {
                     dout.flush();
 
                     //iterate through all server records returned by server, parsing to convert to ServerState object for convenience
-                    List<ServerState> dsServerList = generateServerList(din,numberOfRecords);
+                    List<Server> dsServerList = generateServerList(din, numberOfRecords);
 
                     //send ok
                     dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
@@ -87,26 +88,42 @@ public class DSClient {
                     int serverid = 0;
 
                     //get number of available cores per server to determine smallest / biggest available cores
-                    for (ServerState ser : dsServerList) {
+
+                    for (Server ser : dsServerList) {
                         String runningJobsquery = "LSTJ" + ser.type + " " + ser.serverID + "\n";
                         dout.write(runningJobsquery.getBytes(StandardCharsets.UTF_8));
                         dout.flush();
                         String dataMsg = din.readLine();
-                        List<ServerState> lstis = generateServerList(din,Integer.parseInt(dataMsg.split(" ")[1]));
+
+                        dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
+                        dout.flush();
+
+                        List<SchedulingTrackerItem> lstis = getRunningWaitingJobs(
+                                din,
+                                Integer.parseInt(dataMsg.split(" ")[1]),
+                                ser.type,
+                                ser.serverID);
+                        ser.setJobs(lstis);
                     }
 
                     //get estimated wait time for each server
-                    for (ServerState ser : dsServerList) {
+                    for (Server ser : dsServerList) {
                         String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
                         dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
                         dout.flush();
                         int waitTime = Integer.parseInt(din.readLine());
                         ser.setWaitTime(waitTime);
                     }
-                    //sort the list based on alg preferences(bf,wf) then wait time to optimise (implemented in compareTo)
-                    Collections.sort(dsServerList);
-                    serverType = dsServerList.get(0).type;
-                    serverid = dsServerList.get(0).serverID;
+
+                    //sort the list based on best fit algorithm
+                    Collections.sort(dsServerList, Server::compareTo);
+                    //see if enough cores in best fit server
+                    for (Server ser : dsServerList) {
+                        if (ser.getAvailableCores(submitTime) >= coreCountRequired) {
+                            serverType = ser.type;
+                            serverid = ser.serverID;
+                        }
+                    }
 
                     //schedule job
                     String schCommand = SCHD + " " + jobID + " " + serverType + " " + serverid + NEWLINE_CHAR;
@@ -130,8 +147,6 @@ public class DSClient {
 
             dout.close();
             s.close();
-
-
         } catch (
                 Exception e) {
             System.out.println("something went wrong: " + e.getMessage());
@@ -139,19 +154,39 @@ public class DSClient {
 
     }
 
-    public static List<ServerState> generateServerList(DataInputStream din, int numberOfRecords) throws IOException {
-        List<ServerState> dsServerList = new ArrayList<>();
+    public static List<Server> generateServerList(DataInputStream din, int numberOfRecords) throws IOException {
+        List<Server> dsServerList = new ArrayList<>();
         for (int i = 0; i < numberOfRecords; i++) {
             //add each server to list
             String[] serverInfo = din.readLine().split("\\s");
-            ServerState server = getServerState(serverInfo);
+            Server server = getServerState(serverInfo);
             dsServerList.add(server);
         }
         return dsServerList;
     }
 
-    public static ServerState getServerState(String[] serverInfo) {
-        return new ServerState(
+    //jobID jobState submitTime startTime estRunTime core memory disk.
+    public static List<SchedulingTrackerItem> getRunningWaitingJobs(DataInputStream din, int numberOfItems, String serverType, int serverID) throws IOException {
+        List<SchedulingTrackerItem> items = new ArrayList<>();
+        for (int i = 0; i < numberOfItems; i++) {
+            String[] deets = din.readLine().split("\s");
+            int startTime = Integer.parseInt(deets[3]);
+            items.add(new SchedulingTrackerItem(String.valueOf(deets[0]),
+                    serverType,
+                    serverID,
+                    Integer.parseInt(deets[2]), //submitTime
+                    (startTime > -1 ? (startTime - Integer.parseInt(deets[2])) : -1), //waitTime
+                    startTime, //startTime
+                    Integer.parseInt(deets[4]), //estRunTime
+                    Integer.parseInt(deets[5]), //core
+                    (startTime + Integer.parseInt(deets[4])) //turnAround
+            ));
+        }
+        return items;
+    }
+
+    public static Server getServerState(String[] serverInfo) {
+        return new Server(
                 serverInfo[0],
                 Integer.parseInt(serverInfo[1]), //ID
                 serverInfo[2], //state
