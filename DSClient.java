@@ -4,7 +4,6 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class DSClient {
@@ -60,9 +59,7 @@ public class DSClient {
                     int memoryRequired = Integer.parseInt(jobDetails[5]);
                     int diskRequired = Integer.parseInt(jobDetails[6]);
 
-
                     String query = "GETS Capable " + coreCountRequired + " " + memoryRequired + " " + diskRequired + "\n";
-
                     dout.write(query.getBytes(StandardCharsets.UTF_8));
                     dout.flush();
 
@@ -91,75 +88,28 @@ public class DSClient {
                     dout.flush();
                     din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
 
-                    //todo determine which alg to apply: ff, bf, wf
-                    Comparator<ServerState> c = Comparator.comparing(ServerState::getCore);
-                    if (arg != null && !arg.isEmpty()) {
-                        switch (arg) {
-                            case "wf": c.reversed();
-                            case "ff":c= null;
-                            default: c = Comparator.comparing(ServerState::getCore);
-                        };
-                    }
-
                     String serverType = null;
                     int serverid = 0;
 
-                    //determine best availability, applying the comparitor for sorting based on args passed (ff, bf, wf)
-                    if (c != null) Collections.sort(dsServerList, c); //if c is null, no sort (use first fit)
 
-                    SchedulingTrackerItem tracker = new SchedulingTrackerItem();
-                    ServerState server = null;
-                    for (ServerState ss : dsServerList) {
-                        if (ss.numberOfRunningJobs == 0) {
-                            server = ss; //if no jobs running use this server
-                            ss.incrementNumberOfRunningJobs();
-                            break;
-                        }
+                    //get estimated wait time for each server
+                    for (ServerState ser : dsServerList) {
+                        String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
+                        dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
+                        dout.flush();
+                        int waitTime = Integer.parseInt(din.readLine());
+                        ser.setWaitTime(waitTime);
                     }
-                    if (server == null) { // server wasn't selected because all servers have jobs running
-                        //get estimated wait time for each server
-                        for (ServerState ser : dsServerList) {
-                            String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
-                            dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
-                            dout.flush();
-                            ser.setWaitTime(Integer.parseInt(din.readLine()));
-                        }
+                    //sort the list based on alg preferences(bf,wf) then wait time to optimise (implemented in compareTo)
+                    Collections.sort(dsServerList);
+                    serverType = dsServerList.get(0).type;
+                    serverid = dsServerList.get(0).serverID;
 
-                        //sort servers by how many jobs are queued
-                        switch (arg) {
-                            case "bf":c=Comparator.comparing(ServerState::getCore).thenComparing(ServerState::getWaitTime);
-                            case "wf":c=Comparator.comparing(ServerState::getCore).reversed().thenComparing(ServerState::getWaitTime);
-                            default :c= Comparator.comparing(ServerState::getWaitTime);//ff will apply
-                        };
-                        Collections.sort(dsServerList, c);
-                        server = dsServerList.get(0);
-                    }
-                    //set params for SCHD command
-                    serverid = server.serverID;
-                    serverType = server.type;
-
-                    //track server and job resources
-                    tracker.waitTime = server.getWaitTime();
-                    tracker.submissionTime = submitTime;
-                    tracker.serverID = serverid;
-                    tracker.serverType = serverType;
-                    tracker.jobID = jobID;
-                    tracker.setCalculatedTimes(estRuntime);
-                    trackers.add(tracker);
-
-                   /* if(serverType == null || serverType.isBlank()){
-
-                        //sort by least number of waiting jobs
-                        Collections.sort(dsServerList, Comparator.comparing(ServerState::getNumberOfWaitingJobs));
-                        serverType = dsServerList.get(0).type;
-                        serverid = dsServerList.get(0).serverID;
-                    }*/
                     //schedule job
                     String schCommand = SCHD + " " + jobID + " " + serverType + " " + serverid + NEWLINE_CHAR;
                     dout.write(schCommand.getBytes(StandardCharsets.UTF_8));
                     dout.flush();
                     din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
-
                 }
             }
 

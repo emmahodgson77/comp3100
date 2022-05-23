@@ -37,7 +37,13 @@ public class ServerState implements Comparable{
     @Override
     public int compareTo(Object o) {
             return Comparator.comparing(ServerState::getCore)
+                    .thenComparing(ServerState::getWaitTime)
                     .compare(this, (ServerState) o);
+    }
+
+    public int compareWaitTimes(Object o){
+            return Comparator.comparing(ServerState::getWaitTime)
+                    .compare(this,(ServerState) o);
     }
 
     public void setWaitTime(int waitTime) {
