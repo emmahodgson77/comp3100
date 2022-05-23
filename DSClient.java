@@ -1,5 +1,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -74,14 +75,8 @@ public class DSClient {
                     dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
                     dout.flush();
 
-                    List<ServerState> dsServerList = new ArrayList<>();
                     //iterate through all server records returned by server, parsing to convert to ServerState object for convenience
-                    for (int i = 0; i < numberOfRecords; i++) {
-                        //add each server to list
-                        String[] serverInfo = din.readLine().split("\\s");
-                        ServerState server = getServerState(serverInfo);
-                        dsServerList.add(server);
-                    }
+                    List<ServerState> dsServerList = generateServerList(din,numberOfRecords);
 
                     //send ok
                     dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
@@ -91,6 +86,14 @@ public class DSClient {
                     String serverType = null;
                     int serverid = 0;
 
+                    //get number of available cores per server to determine smallest / biggest available cores
+                    for (ServerState ser : dsServerList) {
+                        String runningJobsquery = "LSTJ" + ser.type + " " + ser.serverID + "\n";
+                        dout.write(runningJobsquery.getBytes(StandardCharsets.UTF_8));
+                        dout.flush();
+                        String dataMsg = din.readLine();
+                        List<ServerState> lstis = generateServerList(din,Integer.parseInt(dataMsg.split(" ")[1]));
+                    }
 
                     //get estimated wait time for each server
                     for (ServerState ser : dsServerList) {
@@ -131,28 +134,22 @@ public class DSClient {
 
         } catch (
                 Exception e) {
-            System.out.println("something wend wrong: " + e.getMessage());
+            System.out.println("something went wrong: " + e.getMessage());
         }
 
     }
 
-    /*static void getAlgType(){
-        if (arg != null && !arg.isEmpty()) {
-            switch (arg) {
-                case "fc":
-                    applyFirstFitSorting();
-                    break;
-                case "bf":
-                    applyBestFitSorting();
-                    break;
-                case "wf":
-                    applyWorstFitSorting();
-                    break;
-            }
-        } else{
-            applyFirstFitSorting();
+    public static List<ServerState> generateServerList(DataInputStream din, int numberOfRecords) throws IOException {
+        List<ServerState> dsServerList = new ArrayList<>();
+        for (int i = 0; i < numberOfRecords; i++) {
+            //add each server to list
+            String[] serverInfo = din.readLine().split("\\s");
+            ServerState server = getServerState(serverInfo);
+            dsServerList.add(server);
         }
-    }*/
+        return dsServerList;
+    }
+
     public static ServerState getServerState(String[] serverInfo) {
         return new ServerState(
                 serverInfo[0],
