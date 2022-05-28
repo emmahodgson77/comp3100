@@ -11,16 +11,14 @@ public class SchedulingTrackerItem implements Comparable{
     int startTime;
     int endTime;
     int coresRequiredForJob;
-    int coresAvailable;
+    int remainingCoresAvailable;
     int turnAroundTime;
 
-    public SchedulingTrackerItem() {
-    }
 //
 //    jobID jobState submitTime startTime estRunTime core memory disk.
 
 
-    public SchedulingTrackerItem(String jobID, String serverType, int serverID, int submissionTime, int waitTime, int startTime, int endTime, int coresRequiredForJob, int turnAroundTime) {
+    public SchedulingTrackerItem(String jobID, String serverType, int serverID, int submissionTime, int waitTime, int startTime, int endTime, int coresRequiredForJob, int remainingAvailableCores, int turnAroundTime) {
         this.jobID = jobID;
         this.serverType = serverType;
         this.serverID = serverID;
@@ -29,21 +27,12 @@ public class SchedulingTrackerItem implements Comparable{
         this.startTime = startTime;
         this.endTime = endTime;
         this.coresRequiredForJob = coresRequiredForJob;
+        this.remainingCoresAvailable = remainingAvailableCores;
         this.turnAroundTime = turnAroundTime;
     }
 
-
-    void setCoresAvailable(int cores){
-        this.coresAvailable = cores;
-    }
     void setStartTime(){
         this.startTime = this.submissionTime+this.waitTime;
-    }
-
-    public void setCalculatedTimes(int timeJobRequiresToComplete) {
-        setStartTime();
-        this.endTime = this.startTime+timeJobRequiresToComplete;
-        this.turnAroundTime = timeJobRequiresToComplete+this.waitTime;
     }
 
     public int getCoresRequiredForJob() {

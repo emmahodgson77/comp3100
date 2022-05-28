@@ -1,11 +1,11 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class DSClient {
@@ -14,8 +14,6 @@ public class DSClient {
     public static final String SCHD = "SCHD";
 
     public static void main(String[] args) {
-        String arg = args[1];
-
 
         int PORT = 50000;
         try {
@@ -31,14 +29,11 @@ public class DSClient {
             //say hello (initiate comms)
             dout.write("HELO\n".getBytes(StandardCharsets.UTF_8));
             dout.flush();
-            System.out.println(din.readLine());
-
+            din.readLine();
             //send auth
             dout.write(AUTH_EMMA.getBytes(StandardCharsets.UTF_8));
             dout.flush();
-
-            dsMsg = din.readLine(); //initially we just want this server response to be not "NONE" in order to use the value to initiate our while condition
-//            List<Integer> jobIdsScheduled = new ArrayList<>();//todo remove
+            dsMsg = din.readLine();
 
             boolean first = true;
             List<SchedulingTrackerItem> trackers = new ArrayList<>();
@@ -61,18 +56,17 @@ public class DSClient {
                     int memoryRequired = Integer.parseInt(jobDetails[5]);
                     int diskRequired = Integer.parseInt(jobDetails[6]);
 
+                    //send server a message to get a list of servers capable of running the job
                     String query = "GETS Capable " + coreCountRequired + " " + memoryRequired + " " + diskRequired + "\n";
                     dout.write(query.getBytes(StandardCharsets.UTF_8));
                     dout.flush();
 
-                    //capture the servers information response from ds server
+                    //parse the response to find the number of capable servers
                     dsMsg = din.readLine(); //eg. DATA 5 124
-                    String[] dsServerInfo = dsMsg.split("\\s");
+                    String[] capableServersDataResponse = dsMsg.split("\\s");
+                    int numberOfRecords = Integer.parseInt(capableServersDataResponse[1]);
 
-                    //parse the number of capable servers to add to our list
-                    int numberOfRecords = Integer.parseInt(dsServerInfo[1]);
-
-                    //send ok to get server details
+                    //send ok to get servers (list of all capable)
                     dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
                     dout.flush();
 
@@ -82,15 +76,15 @@ public class DSClient {
                     //send ok
                     dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
                     dout.flush();
-                    din.readLine(); //do nothing with response from server (should be "OK"): optimise: handle case when not OK
+                    din.readLine();
 
                     String serverType = null;
                     int serverid = 0;
 
-                    //get number of available cores per server to determine smallest / biggest available cores
-
+                    //get jobs running on each server to determine how many cores are currently available
                     for (Server ser : dsServerList) {
-                        String runningJobsquery = "LSTJ" + ser.type + " " + ser.serverID + "\n";
+                        //find the number of jobs currently running or waiting on each server
+                        String runningJobsquery = "LSTJ " + ser.type + " " + ser.serverID + "\n";
                         dout.write(runningJobsquery.getBytes(StandardCharsets.UTF_8));
                         dout.flush();
                         String dataMsg = din.readLine();
@@ -98,31 +92,43 @@ public class DSClient {
                         dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
                         dout.flush();
 
-                        List<SchedulingTrackerItem> lstis = getRunningWaitingJobs(
-                                din,
-                                Integer.parseInt(dataMsg.split(" ")[1]),
-                                ser.type,
-                                ser.serverID);
+                        int numberOfJobsRunning = Integer.parseInt(dataMsg.split(" ")[1]);
+                        //update servers in the capable list, with details of current running/waiting jobs and available cores per server.
+
+                        //Determine which server to schedule job to minimise TurnAroundTime
+                        List<SchedulingTrackerItem> lstis = setNumberOfAvailableCoresAndWaitTimePerServer(din, numberOfJobsRunning, ser);
                         ser.setJobs(lstis);
-                    }
+                        ser.setAvailableCores(submitTime);
 
-                    //get estimated wait time for each server
-                    for (Server ser : dsServerList) {
-                        String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
-                        dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
-                        dout.flush();
-                        int waitTime = Integer.parseInt(din.readLine());
-                        ser.setWaitTime(waitTime);
-                    }
+                        if (numberOfJobsRunning <= 0) {
+                            String f = din.readLine();
+                        } else {
+                            dout.write("OK\n".getBytes(StandardCharsets.UTF_8));
+                            dout.flush();
+                            String msg = din.readLine();
+                        }
 
-                    //sort the list based on best fit algorithm
-                    Collections.sort(dsServerList, Server::compareTo);
-                    //see if enough cores in best fit server
+                    }
+                    //now sort all servers based on updated available cores - most to fewest
+                    dsServerList.sort(Server::compareTo);//TODO check how many cores are on each server here at job 12
+
+                    //find first server with enough cores using the returned list of preferred servers (preference based on my algoritm,
+                    // favouring worst fit + minimal wait time to minimise turn around time)
                     for (Server ser : dsServerList) {
                         if (ser.getAvailableCores(submitTime) >= coreCountRequired) {
                             serverType = ser.type;
                             serverid = ser.serverID;
+                            break;
                         }
+                    }
+                    if (serverType == null) {
+                        //if we get here, no adequate core count is available in our servers list to run job immediately
+                        // my algorithm now decides to schedule the job on whicherver server will next have the available
+                        // capacity to run the job based on estimated wait time
+                        Collections.sort(dsServerList, Comparator.comparing(Server::getWaitTime));
+                        Server server = dsServerList.get(0);
+                        serverType = server.type;
+                        serverid = server.serverID;
                     }
 
                     //schedule job
@@ -165,30 +171,58 @@ public class DSClient {
         return dsServerList;
     }
 
-    //jobID jobState submitTime startTime estRunTime core memory disk.
-    public static List<SchedulingTrackerItem> getRunningWaitingJobs(DataInputStream din, int numberOfItems, String serverType, int serverID) throws IOException {
+    /* This method uses a returned list of jobs running or waiting on the server, to calculate remaining available cores and track available times/cores for scheduling jobs*/
+    public static List<SchedulingTrackerItem> setNumberOfAvailableCoresAndWaitTimePerServer(DataInputStream din, int numberOfItems, Server server) throws IOException {
         List<SchedulingTrackerItem> items = new ArrayList<>();
-        for (int i = 0; i < numberOfItems; i++) {
-            String[] deets = din.readLine().split("\s");
-            int startTime = Integer.parseInt(deets[3]);
-            items.add(new SchedulingTrackerItem(String.valueOf(deets[0]),
-                    serverType,
-                    serverID,
-                    Integer.parseInt(deets[2]), //submitTime
-                    (startTime > -1 ? (startTime - Integer.parseInt(deets[2])) : -1), //waitTime
-                    startTime, //startTime
-                    Integer.parseInt(deets[4]), //estRunTime
-                    Integer.parseInt(deets[5]), //core
-                    (startTime + Integer.parseInt(deets[4])) //turnAround
-            ));
+        if (numberOfItems > 0) {
+            for (int i = 0; i < numberOfItems; i++) {
+                String s = din.readLine();
+                String[] deets = s.split("\\s");
+                int startTime = Integer.parseInt(deets[3]);
+                String jobID = String.valueOf(deets[0]);
+                int submissionTime = Integer.parseInt(deets[2]);
+                int estimatedRunTime = Integer.parseInt(deets[4]);
+                int coresRequiredForJob = Integer.parseInt(deets[5]);
+                int turnAroundTime = startTime + estimatedRunTime;
+                int endTime = startTime + estimatedRunTime;
+
+                //if job is waiting, the waitTime is set to -1 (magic number I know) so we can use conditions of '>-1' to
+                // determine whether to use wait time in scheduling decisions
+                int waitTime = startTime > -1 ? (startTime - submissionTime) : -1;
+                //calculate remaining available cores using last SchedulingTrackerItem for the server in question
+                int remainingAvailableCores = server.coreCount - coresRequiredForJob;
+                if (i > 0) {
+                    for (int j = i; j > 0; j--) {
+                        SchedulingTrackerItem item = items.get(j - 1);
+                        if (item.endTime > submissionTime) {
+                            remainingAvailableCores -= item.coresRequiredForJob;
+                        }
+                    }
+                }
+                items.add(new SchedulingTrackerItem(
+                        jobID,
+                        server.type,
+                        server.serverID,
+                        submissionTime,
+                        waitTime, //waitTime
+                        startTime, //startTime
+                        endTime, //estRunTime
+                        coresRequiredForJob, //core
+                        remainingAvailableCores,
+                        turnAroundTime //turnAround
+                ));
+            }
+
         }
         return items;
     }
 
     public static Server getServerState(String[] serverInfo) {
+        String type = serverInfo[0];
+        int serverID = Integer.parseInt(serverInfo[1]);
         return new Server(
-                serverInfo[0],
-                Integer.parseInt(serverInfo[1]), //ID
+                type,
+                serverID, //ID
                 serverInfo[2], //state
                 Integer.parseInt(serverInfo[3]), //starttime
                 Integer.parseInt(serverInfo[4]), //core
@@ -199,6 +233,15 @@ public class DSClient {
         );
     }
 }
-
+/*
+                    //get estimated wait time for each server
+                    for (Server ser : dsServerList) {
+                        String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
+                        dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
+                        dout.flush();
+                        int waitTime = Integer.parseInt(din.readLine());
+                        ser.setWaitTime(waitTime);
+                    }
+*/
 
 
