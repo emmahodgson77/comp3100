@@ -6,7 +6,7 @@ public class Server implements Comparable {
     int serverID;
     String state;
     int startUpTime;
-    int coreCount;
+    private int coreCount;
     int memory;
     int disk;
     int numberOfWaitingJobs;
@@ -30,12 +30,12 @@ public class Server implements Comparable {
 
 
     public int getCoreCount() {
-        return availableCores;
+        return coreCount;
     }
 
     @Override
     public int compareTo(Object o) {
-        return Comparator.comparing(Server::getCoreCount) //worst fit sorting: largest core count to smallest
+        return Comparator.comparing(Server::getCoreCount).reversed() //worst fit sorting: largest core count to smallest
 //                .thenComparing(Server::getWaitTime) //then by smallest waitTime to minimise TurnAroundTime
                 .compare(this, (Server) o);
     }

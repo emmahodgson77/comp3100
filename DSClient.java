@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class DSClient {
@@ -80,7 +78,7 @@ public class DSClient {
 
                     String serverType = null;
                     int serverid = 0;
-
+                    System.out.println("JOB ID: "+jobID);
                     //sort servers on core count
                     dsServerList.sort(Server::compareTo);
                     for (Server server : dsServerList) {
@@ -106,7 +104,7 @@ public class DSClient {
                             }
                         }
 
-                        if (serverType != null)break;
+                        if (serverType != null) break;
 /*
                             //if we get here, no adequate core count is available in our servers list to run job immediately
                             // my algorithm now decides to schedule the job on whicherver server will next have the available
@@ -116,7 +114,14 @@ public class DSClient {
                             serverType = server.type;
                             serverid = server.serverID;*/
                     }
+                    if(scheduleCount>=dsServerList.size()-1)scheduleCount=-1;
+                    if (serverType == null) {
+                        scheduleCount = scheduleCount+1;
+                        //use first fit
+                        serverid = dsServerList.get(scheduleCount).serverID;
+                        serverType = dsServerList.get(scheduleCount).type;
 
+                    }
                     //schedule job
                     String schCommand = SCHD + " " + jobID + " " + serverType + " " + serverid + NEWLINE_CHAR;
                     dout.write(schCommand.getBytes(StandardCharsets.UTF_8));
@@ -205,7 +210,7 @@ public class DSClient {
                 // determine whether to use wait time in scheduling decisions
                 int waitTime = startTime > -1 ? (startTime - submissionTime) : -1;
                 //calculate remaining available cores using last SchedulingTrackerItem for the server in question
-                int remainingAvailableCores = server.coreCount - coresRequiredForJob;
+                int remainingAvailableCores = server.getCoreCount() - coresRequiredForJob;
                 if (i > 0) {
                     for (int j = i; j > 0; j--) {
                         SchedulingTrackerItem item = items.get(j - 1);
