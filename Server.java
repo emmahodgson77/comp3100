@@ -36,7 +36,7 @@ public class Server implements Comparable {
     @Override
     public int compareTo(Object o) {
         return Comparator.comparing(Server::getCoreCount) //worst fit sorting: largest core count to smallest
-                .thenComparing(Server::getWaitTime) //then by smallest waitTime to minimise TurnAroundTime
+//                .thenComparing(Server::getWaitTime) //then by smallest waitTime to minimise TurnAroundTime
                 .compare(this, (Server) o);
     }
 
