@@ -12,7 +12,7 @@ public class Server implements Comparable {
     int numberOfWaitingJobs;
     int numberOfRunningJobs;
     int waitTime;
-    private List<SchedulingTrackerItem> jobs;
+    List<SchedulingTrackerItem> jobs;
     int availableCores;
 
     public Server(String type, int serverID, String state, int startUpTime, int coreCount, int memory, int disk, int numberOfWaitingJobs, int numberOfRunningJobs) {
@@ -35,7 +35,7 @@ public class Server implements Comparable {
 
     @Override
     public int compareTo(Object o) {
-        return Comparator.comparing(Server::getCoreCount).reversed() //worst fit sorting: largest core count to smallest
+        return Comparator.comparing(Server::getCoreCount) //best fit sorting: largest core count to smallest
 //                .thenComparing(Server::getWaitTime) //then by smallest waitTime to minimise TurnAroundTime
                 .compare(this, (Server) o);
     }
@@ -58,26 +58,16 @@ public class Server implements Comparable {
         this.jobs = jobs;
     }
 
-    public int getAvailableCores(int submitTime) {
-        int remainingCores = this.coreCount;
-        if (this.jobs != null){
-            for(SchedulingTrackerItem item: this.jobs){
-                if(item.endTime>submitTime){
-                    remainingCores -= item.coresRequiredForJob;
-                }
-            }
-        }
-        //if no jobs running return full core count of this server
-        return remainingCores;
+    public int getAvailableCores() {
+        return this.availableCores;
     }
 
     private void setCoreCount(int coresAvailable) {
         this.coreCount = coresAvailable;
     }
 
-    public void setAvailableCores(int submitTime) {
-        this.availableCores = getAvailableCores(submitTime);
+
+    public void setAvailableCores(int serverCoresAvailable) {
+        this.availableCores = serverCoresAvailable;
     }
-
-
 }
