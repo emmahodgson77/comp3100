@@ -73,55 +73,34 @@ public class DSClient {
                     dout.flush();
                     din.readLine();
 
-                    String serverType = null;
-                    int serverid = 0;
+                    String serverType;
+                    int serverid;
                     boolean serverFound = false;
 
-                    System.out.println("JOB ID: " + job.jobID);
-
-                    //sort servers on core count
-//                    dsServerList.sort(Server::compareTo);//don't sort it - use first fit
-                    Server bestSever = null;
-                    //run through available servers of best type
+                    //sort servers by cores available, smallest servers to biggest to minimise cost
+//                    dsServerList.sort(Server::compareTo);
+                    Server bestSever = dsServerList.get(0);
+                    //run through available servers to get smallest server without jobs running/waiting
                     for (Server server : dsServerList) {
-                        if (serverBusy(server)) {
-                            if (serverWillBeFreeBySubmissionTime(server)) {
+                        if (serverIsFree(server)) {
+                            bestSever = server;
+                            serverFound = true;
+                            break;
+                        }else{
+                            if (availableCoresBySubmissionTime(server)) {
                                 bestSever = server;
                                 serverFound = true;
                                 break;
                             }
-                        } else {
-                            bestSever = server;
-                            serverFound = true;
-                            break;
                         }
                     }
                     if (!serverFound) {
                         //all servers are already busy - work out which has most available cores by submission time
-//                        bestSever = serverWithMostAvailableCoresBySubmissionTime(dsServerList, job.submitTime, job.coreCountRequired);
-                        bestSever = serverWithMostAvailableCoresBySubmissionTime(dsServerList, job.submitTime, job.coreCountRequired);
+                        bestSever = getBestFitServerByAvailableCores(dsServerList, job.submitTime);
                     }
                     serverid = bestSever.serverID;
                     serverType = bestSever.type;
-/*                    count++;
-                    if (serverType == null) {
-                        //if we get here, no adequate core count is available in our servers list to run job immediately
-                        // my algorithm now decides to schedule the job on whicherver server will next have the available
-                        // capacity to run the job based on estimated wait time
-                        //get estimated wait time for each server
-                        for (Server ser : dsServerList) {
-                            String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
-                            dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
-                            dout.flush();
-                            int waitTime = Integer.parseInt(din.readLine());
-                            ser.setWaitTime(waitTime);
-                        }
-                        dsServerList.sort(Comparator.comparing(Server::getWaitTime));
-                        Server server = bestSever;
-                        serverType = server.type;
-                        serverid = server.serverID;
 
-                    }*/
                     //schedule job
                     String schCommand = SCHD + " " + job.jobID + " " + serverType + " " + serverid + NEWLINE_CHAR;
                     dout.write(schCommand.getBytes(StandardCharsets.UTF_8));
@@ -151,7 +130,7 @@ public class DSClient {
 
     }
 
-    private static List<Server> getOriginalServerStates() throws IOException{
+    private static List<Server> getOriginalServerStates() throws IOException {
         //send server a message to get a list of servers capable of running the job
         String query = "GETS All\n";
         dout.write(query.getBytes(StandardCharsets.UTF_8));
@@ -180,7 +159,7 @@ public class DSClient {
         int coreCountRequired = Integer.parseInt(jobDetails[4]);
         int memoryRequired = Integer.parseInt(jobDetails[5]);
         int diskRequired = Integer.parseInt(jobDetails[6]);
-        return new Job(jobID,submitTime,estRuntime,coreCountRequired,memoryRequired,diskRequired);
+        return new Job(jobID, submitTime, estRuntime, coreCountRequired, memoryRequired, diskRequired);
 
     }
 
@@ -201,18 +180,19 @@ public class DSClient {
         }
         if (numberOfRunningJobs <= 0) {
             String f = din.readLine();
+        }else {
+
+            dout.write("OK\n".getBytes(StandardCharsets.UTF_8));//this triggers the job list to be issued by server
+            dout.flush();
+            String hold = din.readLine();
         }
-
-        dout.write("OK\n".getBytes(StandardCharsets.UTF_8));//this triggers the job list to be issued by server
-        dout.flush();
-        din.readLine();
-
         server.setJobs(jobs);
     }
 
-    public static boolean serverWillBeFreeBySubmissionTime(Server server) throws IOException {
+    public static boolean availableCoresBySubmissionTime(Server server) throws IOException {
         boolean free = true;
         setScheduledJobsForServer(server);
+        int totalWaitingTime = 0;
         for (SchedulingTrackerItem job : server.jobs) {
             if (job.state >= 0) {
                 if (job.startTime < job.submissionTime && job.endTime < job.submissionTime) {
@@ -235,30 +215,16 @@ public class DSClient {
 
     }
 
-    public static Server serverWithMostAvailableCoresBySubmissionTime(List<Server> servers, int submissionTime, int coresRequiredForJob) {
-        for (Server server : servers) {
-            Server originalState = findServer(server);
-
-            // GETS Capable list returns how many free cores - this may not map to how many total cores the machine has.
-            int totalCores = originalState == null ? 0: originalState.getCoreCount();
-            int serverCoresAvailable = totalCores;
-
-            for (SchedulingTrackerItem job : server.jobs) {
-                totalCores += job.coresRequiredForJob;
-                if (job.startTime < 0 || job.endTime > submissionTime) {   //job hasn't started yet - for now mark required cores unavailable TODO make this better
-                    serverCoresAvailable -= job.coresRequiredForJob;
-
-                }
-            }
-            server.setAvailableCores(serverCoresAvailable);
-        }
+    public static Server getBestFitServerByAvailableCores(List<Server> servers, int submissionTime) throws IOException {
+        setAvailableCoresBasedOnJobs(servers, submissionTime);
         servers.sort(Comparator.comparing(Server::getAvailableCores));
         return servers.get(0);
     }
 
-    public static Server serverWithShortestWaitTime(List<Server> servers, int submissionTime) {
+    private static void setAvailableCoresBasedOnJobs(List<Server> servers, int submissionTime) throws IOException {
         for (Server server : servers) {
             Server originalState = findServer(server);
+            setScheduledJobsForServer(server);
 
             // GETS Capable list returns how many free cores - this may not map to how many total cores the machine has.
             int totalCores = originalState == null ? 0: originalState.getCoreCount();
@@ -273,8 +239,6 @@ public class DSClient {
             }
             server.setAvailableCores(serverCoresAvailable);
         }
-        servers.sort(Comparator.comparing(Server::getAvailableCores));
-        return servers.get(0);
     }
 
     public static Server findServer(Server server){
@@ -292,6 +256,14 @@ public class DSClient {
             String[] serverInfo = din.readLine().split("\\s");
             Server server = getServerState(serverInfo);
             dsServerList.add(server);
+            if(originalServers!=null&& !originalServers.isEmpty()){
+                Server original = findServer(server);
+                if(original!=null){
+                    server.setOriginalCoreCount(original.getCoreCount());
+                }
+            }else{
+                server.setOriginalCoreCount(server.getCoreCount());
+            }
         }
         return dsServerList;
     }
@@ -311,8 +283,17 @@ public class DSClient {
                 Integer.parseInt(serverInfo[8])
         );
     }
+    private static void setWaitTimes(List<Server> servers) throws IOException {
+        for (Server ser : servers) {
+            String timeCommand = "EJWT " + ser.type + " " + ser.serverID + "\n";
+            dout.write(timeCommand.getBytes(StandardCharsets.UTF_8));
+            dout.flush();
+            int waitTime = Integer.parseInt(din.readLine());
+            ser.setWaitTime(waitTime);
+        }
+    }
 
-    private static boolean serverBusy(Server server) {
-        return server.numberOfRunningJobs != 0 || server.numberOfWaitingJobs != 0;
+    private static boolean serverIsFree(Server server) {
+        return server.numberOfRunningJobs == 0 && server.numberOfWaitingJobs == 0;
     }
 }

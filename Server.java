@@ -14,6 +14,7 @@ public class Server implements Comparable {
     int waitTime;
     List<SchedulingTrackerItem> jobs;
     int availableCores;
+    int originalCoreCount;
 
     public Server(String type, int serverID, String state, int startUpTime, int coreCount, int memory, int disk, int numberOfWaitingJobs, int numberOfRunningJobs) {
         this.type = type;
@@ -33,11 +34,31 @@ public class Server implements Comparable {
         return coreCount;
     }
 
+    public void setOriginalCoreCount(int cores){
+        this.originalCoreCount = cores;
+    }
+
+    public int getOriginalCoreCount(){
+        return originalCoreCount;
+    }
     @Override
     public int compareTo(Object o) {
-        return Comparator.comparing(Server::getCoreCount) //best fit sorting: largest core count to smallest
-//                .thenComparing(Server::getWaitTime) //then by smallest waitTime to minimise TurnAroundTime
+        return Comparator.comparing(Server::getStatus)
+                .thenComparing(Server::getWaitTime)
+                .thenComparing(Server::getCoreCount)
+                .thenComparing(Server::getAvailableCores)
                 .compare(this, (Server) o);
+    }
+
+    public int getStatus(){
+        //status returns are based on preference for sorting
+        switch (this.state){
+            case "inactive":return 3;
+            case "idle":return 0;
+            case "booting": return 1;
+            case "active":return 2;
+            default: return 4;
+        }
     }
 
 
